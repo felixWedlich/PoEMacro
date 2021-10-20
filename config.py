@@ -17,6 +17,7 @@ GUILD_HIDEOUT_KEY = ""
 
 # FLASK CONFIG
 AUTO_TOGGLE = True
+DISABLE_MACRO_WHILE_CHAT = True
 CLIENT_TXT_LOCATION = r"C:\Program Files (x86)\Steam\steamapps\common\Path of Exile\logs\Client.txt"
 
 CLIENT_TXT_REFRESH_DURATION = 2

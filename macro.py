@@ -74,42 +74,42 @@ CHAT_PAUSE = False
 pause/restart of flasking is desired on shift enter and normal enter
 """
 
+if DISABLE_MACRO_WHILE_CHAT:
+    @ahkpy.hotkey("~Enter")
+    def pause_flask():
+        global CHAT_PAUSE
+        if not FLASKS_RUNNING:
+            return
+        if CHAT_PAUSE:  # reenable flasks
+            print("reenabling flasks, after chat")
+            for flask in FLASKS:
+                flask.hard_start()
+                FLASK_TIMEOUT_TIMER.start()
+        else:
+            print("disabling flasks, due to chat")
+            for flask in FLASKS:
+                flask.stop()
+                FLASK_TIMEOUT_TIMER.stop()
+        CHAT_PAUSE = not CHAT_PAUSE
 
-@ahkpy.hotkey("~Enter")
-def pause_flask():
-    global CHAT_PAUSE
-    if not FLASKS_RUNNING:
-        return
-    if CHAT_PAUSE:  # reenable flasks
-        print("reenabling flasks, after chat")
-        for flask in FLASKS:
-            flask.hard_start()
-            FLASK_TIMEOUT_TIMER.start()
-    else:
-        print("disabling flasks, due to chat")
-        for flask in FLASKS:
-            flask.stop()
-            FLASK_TIMEOUT_TIMER.stop()
-    CHAT_PAUSE = not CHAT_PAUSE
+if DISABLE_MACRO_WHILE_CHAT:
+    @ahkpy.hotkey("~+Enter")
+    def pause_flask2():
+        global CHAT_PAUSE
+        if not FLASKS_RUNNING:
+            return
+        if CHAT_PAUSE:  # reenable flasks
+            print("reenabling flasks, after chat")
+            for flask in FLASKS:
+                flask.hard_start()  # TODO consider if soft start is fine here?
+                FLASK_TIMEOUT_TIMER.start()
 
-
-@ahkpy.hotkey("~+Enter")
-def pause_flask2():
-    global CHAT_PAUSE
-    if not FLASKS_RUNNING:
-        return
-    if CHAT_PAUSE:  # reenable flasks
-        print("reenabling flasks, after chat")
-        for flask in FLASKS:
-            flask.hard_start()  # TODO consider if soft start is fine here?
-            FLASK_TIMEOUT_TIMER.start()
-
-    else:
-        print("disabling flasks, due to chat")
-        for flask in FLASKS:
-            flask.stop()
-            FLASK_TIMEOUT_TIMER.stop()
-    CHAT_PAUSE = not CHAT_PAUSE
+        else:
+            print("disabling flasks, due to chat")
+            for flask in FLASKS:
+                flask.stop()
+                FLASK_TIMEOUT_TIMER.stop()
+        CHAT_PAUSE = not CHAT_PAUSE
 
 
 if GET_POS_KEY:
