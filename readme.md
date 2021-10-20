@@ -1,4 +1,4 @@
-#Features:
+# Features:
 
 Flask macro:
  - configurable duration per flask / hotkey => adaptable for periodic spell use (guards/blood rage)
@@ -27,7 +27,7 @@ If PoE is running:
 
 (need to restart macro if PoE is restarted, is on todo)
 
-#Config:
+# Config:
 
 necessary: adapt the PoE.exe name that is running in Flask.py 
 
