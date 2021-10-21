@@ -4,7 +4,7 @@ import asyncio
 from tkinter import *
 from PIL import ImageGrab
 from config import *
-
+from typing import List,Tuple
 
 async def read_client_txt():
     global FLASKS_ENABLED, IN_TOWN
@@ -124,11 +124,11 @@ if LEVEL_GEM_KEY:
             print("leveling gem")
             prev_x, prev_y = ahkpy.get_mouse_pos("screen")
             ahkpy.mouse_move(GEM_LEVEL_X, GEM_LEVEL_Y,
-                             relative_to="screen", speed=1)
+                             relative_to="screen", speed=MOUSESPEED)
             ahkpy.send("{Ctrl down}")
             ahkpy.mouse_press("left")
             ahkpy.mouse_release("left")
-            ahkpy.mouse_move(prev_x, prev_y, relative_to="screen", speed=1)
+            ahkpy.mouse_move(prev_x, prev_y, relative_to="screen", speed=MOUSESPEED)
             if LEVEL_GEM_CLICK_OLD_MOUSE_POS:
                 ahkpy.mouse_press("left")
                 ahkpy.mouse_release("left")
@@ -178,21 +178,20 @@ def mark_locked_cell(event: Event):
 
         inv_locked[i][j] = ret
 
-
-def blockshaped(arr, nrows, ncols):  # yoinked from SO
-    """
-    Return an array of shape (n, nrows, ncols) where
-    n * nrows * ncols = arr.size
-
-    If arr is a 2D array, the returned array should look like n subblocks with
-    each subblock preserving the "physical" layout of arr.
-    """
-    h, w = arr.shape
-    assert h % nrows == 0, f"{h} rows is not evenly divisible by {nrows}"
-    assert w % ncols == 0, f"{w} cols is not evenly divisible by {ncols}"
-    return (arr.reshape(h // nrows, nrows, -1, ncols)
-            .swapaxes(1, 2)
-            .reshape(-1, nrows, ncols))
+def scuffed_image_to_cells_1080p(matrix:np.array)-> List[Tuple[int,int,np.array]]:
+    cells = []
+    base_x = 0
+    for c in range(12):#iterate through columns
+        base_y = 0
+        w = INV_CELL_WIDTH_SCUFFED if c in SCUFFED_COLUMNS else INV_CELL_WIDTH
+        for r in range(5): #iterate through rows:
+            h = INV_CELL_HEIGHT_SCUFFED if r in SCUFFED_ROWS else INV_CELL_HEIGHT
+            slice_m = matrix[base_y:base_y+h,base_x:base_x+w]
+            cells.append((c,r,slice_m))
+            #Image.fromarray(slice_m).save(f"pics/cells_c{c}_r{r}.png")
+            base_y += h
+        base_x += w
+    return cells
 
 
 @ahkpy.hotkey(f"{MANUAL_TOGGLE_FLASK_KEY}")
@@ -223,26 +222,46 @@ def toggle_open_lock_gui():
         root.deiconify()
     LOCK_GUI_SHOWN = not LOCK_GUI_SHOWN
 
+@ahkpy.hotkey("F3")
+def screenshot_inv():
+    im = ImageGrab.grab(bbox=(INV_START_X, INV_START_Y, INV_START_X + INV_WIDTH, INV_START_Y + INV_HEIGHT))
+    im.save("pics/full.png")
+    im = im.convert("L")
+    print(np.array(im).shape)
+    individual_inv_cells = scuffed_image_to_cells_1080p(np.array(im))
+    for i, cell in enumerate(individual_inv_cells, start=0):
+
+        #cell = cell.astype(int)
+        Image.fromarray(cell).save(f"pics/cell{i}.png")
+
 
 @ahkpy.hotkey(f"{STASH_KEY}")
 def stash_all_non_empty_cells():
+    ahkpy.sleep(0.2)
     if not IN_TOWN:  # in a map nobody wants to autostash
         print("not in town, ignored inv-stash")
         return
     ahkpy.block_input()
     im = ImageGrab.grab(bbox=(INV_START_X, INV_START_Y, INV_START_X + INV_WIDTH, INV_START_Y + INV_HEIGHT)).convert("L")
-    individual_inv_cells = blockshaped(np.array(im), INV_CELL_HEIGHT, INV_CELL_WIDTH)
-    for i, cell in enumerate(individual_inv_cells, start=0):
+    for c,r, cell in scuffed_image_to_cells_1080p(np.array(im)):
         cell = cell.astype(int)
-        diff = np.subtract(cell, EMPTY_CELL)
+        if c in SCUFFED_COLUMNS and r in SCUFFED_ROWS:
+            diff = np.subtract(cell,EMPTY_CELL_XY_SCUFFED)
+        elif c in SCUFFED_COLUMNS:
+            diff = np.subtract(cell,EMPTY_CELL_X_SCUFFED)
+        elif r in SCUFFED_ROWS:
+            diff = np.subtract(cell,EMPTY_CELL_Y_SCUFFED)
+        else:
+            diff = np.subtract(cell,EMPTY_CELL)
+        #Image.fromarray(diff).save(f"pics/diff_c{c}_r{r}.png")
         s = np.sqrt(np.sum(np.abs(diff)))
+
         if s > STASH_DIFF_THRESH:
-            r, c = i // 12, i % 12
             if inv_locked[c][r]:
                 continue
 
             ahkpy.mouse_move(INV_START_X + (0.5 + c) * INV_CELL_WIDTH, INV_START_Y + (0.5 + r) * INV_CELL_HEIGHT,
-                             relative_to="screen", speed=1)
+                             relative_to="screen", speed=MOUSESPEED)
             ahkpy.send("{Ctrl down}")
             ahkpy.mouse_press("left")
             ahkpy.mouse_release("left")
