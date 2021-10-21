@@ -4,7 +4,8 @@ import asyncio
 from tkinter import *
 from PIL import ImageGrab
 from config import *
-from typing import List,Tuple
+from typing import List, Tuple
+
 
 async def read_client_txt():
     global FLASKS_ENABLED, IN_TOWN
@@ -58,7 +59,7 @@ FLASK_TIMEOUT_TIMER.stop()
 
 
 @ahkpy.hotkey(f"~{MACRO_TRIGGER_KEY}")
-def trigger_auto_flask():# TODO consider only triggering if PoE is the main window
+def trigger_auto_flask():  # TODO consider only triggering if PoE is the main window
     global FLASKS_RUNNING
     if FLASKS_ENABLED and not FLASKS_RUNNING:
         print("started macro, due to pressing the macro trigger key")
@@ -110,7 +111,6 @@ if DISABLE_MACRO_WHILE_CHAT:
                 flask.stop()
                 FLASK_TIMEOUT_TIMER.stop()
         CHAT_PAUSE = not CHAT_PAUSE
-
 
 if GET_POS_KEY:
     @ahkpy.hotkey(GET_POS_KEY)
@@ -178,17 +178,18 @@ def mark_locked_cell(event: Event):
 
         inv_locked[i][j] = ret
 
-def scuffed_image_to_cells_1080p(matrix:np.array)-> List[Tuple[int,int,np.array]]:
+
+def scuffed_image_to_cells_1080p(matrix: np.array) -> List[Tuple[int, int, np.array]]:
     cells = []
     base_x = 0
-    for c in range(12):#iterate through columns
+    for c in range(12):  # iterate through columns
         base_y = 0
         w = INV_CELL_WIDTH_SCUFFED if c in SCUFFED_COLUMNS else INV_CELL_WIDTH
-        for r in range(5): #iterate through rows:
+        for r in range(5):  # iterate through rows:
             h = INV_CELL_HEIGHT_SCUFFED if r in SCUFFED_ROWS else INV_CELL_HEIGHT
-            slice_m = matrix[base_y:base_y+h,base_x:base_x+w]
-            cells.append((c,r,slice_m))
-            #Image.fromarray(slice_m).save(f"pics/cells_c{c}_r{r}.png")
+            slice_m = matrix[base_y:base_y + h, base_x:base_x + w]
+            cells.append((c, r, slice_m))
+            # Image.fromarray(slice_m).save(f"pics/cells_c{c}_r{r}.png")
             base_y += h
         base_x += w
     return cells
@@ -222,17 +223,16 @@ def toggle_open_lock_gui():
         root.deiconify()
     LOCK_GUI_SHOWN = not LOCK_GUI_SHOWN
 
+
 @ahkpy.hotkey("F3")
 def screenshot_inv():
     im = ImageGrab.grab(bbox=(INV_START_X, INV_START_Y, INV_START_X + INV_WIDTH, INV_START_Y + INV_HEIGHT))
-    im.save("pics/full.png")
+    im.save(f"pics/full.png")
     im = im.convert("L")
     print(np.array(im).shape)
-    individual_inv_cells = scuffed_image_to_cells_1080p(np.array(im))
-    for i, cell in enumerate(individual_inv_cells, start=0):
-
-        #cell = cell.astype(int)
-        Image.fromarray(cell).save(f"pics/cell{i}.png")
+    for c, r, cell in scuffed_image_to_cells_1080p(np.array(im)):
+        # cell = cell.astype(int)
+        Image.fromarray(cell).save(f"pics/cell_c{c}_r{r}.png")
 
 
 @ahkpy.hotkey(f"{STASH_KEY}")
@@ -243,20 +243,21 @@ def stash_all_non_empty_cells():
         return
     ahkpy.block_input()
     im = ImageGrab.grab(bbox=(INV_START_X, INV_START_Y, INV_START_X + INV_WIDTH, INV_START_Y + INV_HEIGHT)).convert("L")
-    for c,r, cell in scuffed_image_to_cells_1080p(np.array(im)):
+    for c, r, cell in scuffed_image_to_cells_1080p(np.array(im)):
         cell = cell.astype(int)
         if c in SCUFFED_COLUMNS and r in SCUFFED_ROWS:
-            diff = np.subtract(cell,EMPTY_CELL_XY_SCUFFED)
+            diff = np.subtract(cell, EMPTY_CELL_XY_SCUFFED)
         elif c in SCUFFED_COLUMNS:
-            diff = np.subtract(cell,EMPTY_CELL_X_SCUFFED)
+            diff = np.subtract(cell, EMPTY_CELL_X_SCUFFED)
         elif r in SCUFFED_ROWS:
-            diff = np.subtract(cell,EMPTY_CELL_Y_SCUFFED)
+            diff = np.subtract(cell, EMPTY_CELL_Y_SCUFFED)
         else:
-            diff = np.subtract(cell,EMPTY_CELL)
-        #Image.fromarray(diff).save(f"pics/diff_c{c}_r{r}.png")
+            diff = np.subtract(cell, EMPTY_CELL)
+        # Image.fromarray(diff).save(f"pics/diff_c{c}_r{r}.png")
         s = np.sqrt(np.sum(np.abs(diff)))
 
         if s > STASH_DIFF_THRESH:
+            print(c,r,s)
             if inv_locked[c][r]:
                 continue
 
