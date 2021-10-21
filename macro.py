@@ -120,18 +120,18 @@ if GET_POS_KEY:
 if LEVEL_GEM_KEY:
     @ahkpy.hotkey(f"{LEVEL_GEM_KEY}")
     def level_up_gem():
-        with ahkpy.block_input(), ahkpy.block_mouse_move():
-            print("leveling gem")
-            prev_x, prev_y = ahkpy.get_mouse_pos("screen")
-            ahkpy.mouse_move(GEM_LEVEL_X, GEM_LEVEL_Y,
-                             relative_to="screen", speed=MOUSESPEED)
-            ahkpy.send("{Ctrl down}")
+
+        print("leveling gem")
+        prev_x, prev_y = ahkpy.get_mouse_pos("screen")
+        ahkpy.mouse_move(GEM_LEVEL_X, GEM_LEVEL_Y,
+                         relative_to="screen", speed=MOUSESPEED)
+        ahkpy.send("{Ctrl down}")
+        ahkpy.mouse_press("left")
+        ahkpy.mouse_release("left")
+        ahkpy.mouse_move(prev_x, prev_y, relative_to="screen", speed=MOUSESPEED)
+        if LEVEL_GEM_CLICK_OLD_MOUSE_POS:
             ahkpy.mouse_press("left")
             ahkpy.mouse_release("left")
-            ahkpy.mouse_move(prev_x, prev_y, relative_to="screen", speed=MOUSESPEED)
-            if LEVEL_GEM_CLICK_OLD_MOUSE_POS:
-                ahkpy.mouse_press("left")
-                ahkpy.mouse_release("left")
 
 if HIDEOUT_KEY:
     @ahkpy.hotkey(f"{HIDEOUT_KEY}")
