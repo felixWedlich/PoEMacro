@@ -97,48 +97,63 @@ class InventoryManager:
             cell = cell.astype(int)
 
             diff = np.subtract(cell, self.empty_cell_ref[cell.shape])
-            # if c in inv_cell_info.alt_c and r in inv_cell_info.alt_r:
-            #     diff = np.subtract(cell, EMPTY_CELL_XY_SCUFFED)
-            # elif c in inv_cell_info.alt_c:
-            #     diff = np.subtract(cell, EMPTY_CELL_X_SCUFFED)
-            # elif r in inv_cell_info.alt_r:
-            #     diff = np.subtract(cell, EMPTY_CELL_Y_SCUFFED)
-            # else:
-            #     diff = np.subtract(cell, EMPTY_CELL)
+
             # Image.fromarray(diff).save(f"pics/diff_c{c}_r{r}.png")
             s = np.sqrt(np.sum(np.abs(diff)))
             if s > STASH_DIFF_THRESH:
                 if self.inv_locked[c][r]:
                     continue
-                # if large_item_need_not_click [c][r]:
-                #     #print("skipped click")
-                #     continue
-                # check_right_border_index = c
-                # check_lower_border_index = r
-                # while check_right_border_index + 1 < inv_cell_info.n_c:
-                #     i = check_right_border_index * inv_cell_info.n_r + r
-                #     if not check_right_border(split_image[i][2]):
-                #         break
-                #     #print("item extends right")
-                #     #large_item_need_not_click[check_right_border_index][r] = True
-                #     check_right_border_index += 1
-                # while check_lower_border_index + 1 < inv_cell_info.n_r:
-                #     i = c*inv_cell_info.n_r + check_lower_border_index
-                #     if not check_lower_border(split_image[i][2]):
-                #         break
-                #
-                #     #print("item extends down")
-                #     #large_item_need_not_click[c][check_lower_border_index] = True
-                #     check_lower_border_index += 1
-                # for c_i in range(c,check_right_border_index+1):
-                #     for r_i in range(r,check_lower_border_index+1):
-                #         if c_i == c and r_i == r:
-                #             continue
-                #         large_item_need_not_click[c_i][r_i] = True
+                if large_item_need_not_click [c][r]:
+                    #print("skipped click")
+                    continue
+                check_right_border_index = c
+                check_lower_border_index = r
+                while check_right_border_index + 1 < inv_cell_info.n_c:
+                    i = check_right_border_index * inv_cell_info.n_r + r
+                    if not self.check_right_border(split_image[i][2]):
+                        break
+                    #print("item extends right")
+                    #large_item_need_not_click[check_right_border_index][r] = True
+                    check_right_border_index += 1
+                while check_lower_border_index + 1 < inv_cell_info.n_r:
+                    i = c*inv_cell_info.n_r + check_lower_border_index
+                    if not self.check_lower_border(split_image[i][2]):
+                        break
+
+                    #print("item extends down")
+                    #large_item_need_not_click[c][check_lower_border_index] = True
+                    check_lower_border_index += 1
+                for c_i in range(c,check_right_border_index+1):
+                    for r_i in range(r,check_lower_border_index+1):
+                        if c_i == c and r_i == r:
+                            continue
+                        large_item_need_not_click[c_i][r_i] = True
                 print(c, r, s)
 
                 self.ctrl_click_cell(c,r)
         MOUSESPEED = 1
+    @staticmethod
+    def check_lower_border(cell:np.array,n:int=2) -> bool:
+        """
+        look at the last n rows of cells, ignoring the lowest 2 rows of cells (border)
+        :param cell:
+        :return:
+        """
+        slice = cell[-(n+2):-2,:]
+        print("lower_border:",np.sum(np.sqrt(slice)))
+        return np.sum(np.sqrt(slice)) > (1200/n)
+
+    @staticmethod
+    def check_right_border(cell:np.array,n:int=2) -> bool:
+        """
+        look at the last n columns of cells, ignoring the lowest 2 columns of cells (border)
+        :param cell:
+        :return:
+        """
+        slice = cell[:,-(n+2):-2]
+        print("right_border:",np.sum(np.sqrt(slice)))
+        return np.sum(np.sqrt(slice)) > (1200/n)
+
     @staticmethod
     def ctrl_click_cell(c: int , r:int):
         ahkpy.mouse_move(inv_cell_info.start_x + (0.5 + c) * inv_cell_info.width_c, inv_cell_info.start_y + (0.5 + r) * inv_cell_info.height_r,
