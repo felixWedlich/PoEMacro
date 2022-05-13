@@ -2,6 +2,8 @@ import ahkpy
 from macro import Macro
 from src.config import CLIENT_TXT_LOCATION,MANUAL_TOGGLE_FLASK_KEY, HIDEOUT_KEY, GUILD_HIDEOUT_KEY, STASH_KEY, LOGOUT_KEY, GEM_SWAP_KEY, LEVEL_GEM_KEY, INV_LOCK_TOGGLE_MENU_KEY, MACRO_TRIGGER_KEY, GET_POS_KEY
 from src.config import FAST_CLICK_TOGGLE, GEM_LEVEL_X, GEM_LEVEL_Y, LEVEL_GEM_CLICK_OLD_MOUSE_POS
+
+from PIL import ImageGrab
 if __name__ == '__main__':
     MOUSESPEED = 2
     macro = Macro(client_txt_fp=CLIENT_TXT_LOCATION)
@@ -12,10 +14,24 @@ if __name__ == '__main__':
         macro.stash_all_non_empty_cells()
 
 
-    @ahkpy.hotkey(f"~{MACRO_TRIGGER_KEY}")
+
     def wrap_trigger_auto_flask():
         macro.flask_belt.trigger_auto_flask()
+    @ahkpy.hotkey(f"F4")
+    def wrap_update_caps():
+        macro.flask_belt.update_caps()
 
+    @ahkpy.hotkey(f"~{'Q'}")
+    def wrap_trigger_auto_flask_1():
+        wrap_trigger_auto_flask()
+    @ahkpy.hotkey(f"~{MACRO_TRIGGER_KEY}")
+    def wrap_trigger_auto_flask_2():
+        wrap_trigger_auto_flask()
+
+    @ahkpy.hotkey("F3")
+    def take_mana_ss():
+        im = ImageGrab.grab(bbox=(*(2285, 1115), *(2513, 1146)))
+        im.save("mana.png")
 
     @ahkpy.hotkey(GET_POS_KEY)
     def get_pos():

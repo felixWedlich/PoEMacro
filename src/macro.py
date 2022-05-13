@@ -1,4 +1,6 @@
 import asyncio
+import time
+import threading
 import ahkpy
 from src.config import SIMULACRUM_PLACES, AUTOFLASK_DISABLED_PLACES, CLIENT_TXT_REFRESH_DURATION, AUTO_TOGGLE
 from flask import FlaskBelt
@@ -7,7 +9,6 @@ class Macro:
 
     def __init__(self,client_txt_fp:str):
 
-        self.FLASKS_ENABLED = False
         self.IN_TOWN = True
         self.IN_SIMULACRUM = False
         self.client_txt = open(client_txt_fp,"r", encoding="utf-8")
@@ -17,7 +18,12 @@ class Macro:
 
 
     def start_looping(self):
-        asyncio.run(self.read_client_txt())
+
+        # asyncio.run(self.read_client_txt())
+        th = threading.Thread(target=self.read_client_txt)
+        th.start()
+        while th.is_alive():
+            self.sleeper()
 
 
 
@@ -28,10 +34,9 @@ class Macro:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.client_txt.close()
 
-    async def read_client_txt(self,):
+
+    def read_client_txt(self,):
         # JUST_DIED = False
-        loop = asyncio.get_running_loop()
-        loop.call_soon(self.sleeper, loop)
         self.client_txt.readlines()
         while True:
             new_lines = self.client_txt.readlines()
@@ -39,6 +44,9 @@ class Macro:
                 # if f"SniixedMinionCuck has been slain." in line:
                 #     print("death")
                 #     JUST_DIED = True
+                if "is now level" in line:
+                    print("leveled up updating caps")
+                    self.flask_belt.update_caps()
                 if "You have entered" in line:
                     print("changed place")
                     # if JUST_DIED:
@@ -49,7 +57,7 @@ class Macro:
                     if not AUTO_TOGGLE:
                         break
                     else:
-                        self.FLASKS_ENABLED = True
+                        self.flask_belt.FLASKS_ENABLED = True
                         self.IN_TOWN = False
                         self.IN_SIMULACRUM = False
 
@@ -57,24 +65,23 @@ class Macro:
                         if place in line:
                             if AUTO_TOGGLE:
                                 self.flask_belt.stop_auto_flask()
-                                self.FLASKS_ENABLED = False
-                            IN_TOWN = True
+                                self.flask_belt.FLASKS_ENABLED = False
+                            self.IN_TOWN = True
                             break
                     for place in SIMULACRUM_PLACES:
                         if place in line:
-                            IN_SIMULACRUM = True
+                            self.IN_SIMULACRUM = True
                             if AUTO_TOGGLE:
-                                FLASKS_ENABLED = True
-                                IN_TOWN = False
+                                self.flask_belt.FLASKS_ENABLED = True
+                                self.IN_TOWN = False
                             break
-                    print("automatically toggled Flasks to: " + ("enabled" if self.FLASKS_ENABLED else "disabled"))
+                    print("automatically toggled Flasks to: " + ("enabled" if self.flask_belt.FLASKS_ENABLED else "disabled"))
 
-            await asyncio.sleep(CLIENT_TXT_REFRESH_DURATION)
+            time.sleep(CLIENT_TXT_REFRESH_DURATION)
 
-    def sleeper(self,loop):
+    def sleeper(self):
         ahkpy.sleep(0.01)
         self.inv.root.update()
-        loop.call_soon(self.sleeper, loop)
 
 
     def stash_all_non_empty_cells(self,):
