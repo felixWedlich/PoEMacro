@@ -161,6 +161,7 @@ class Detector:
                     if not found:
                         break
                 val = reduce(lambda x, y: x * 10 + y, detected)
+                # print(val)
                 self.mem.buf[7:11] = val.to_bytes(4,byteorder="big")
                 print("new cap", val)
                 self.mem.buf[6] = 0
