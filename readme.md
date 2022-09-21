@@ -15,13 +15,21 @@ Gem-Leveling:
  - configurable Hotkey to move mouse and level gem, then return mouse to old position
 # Installation:
 
-- requirements: Python3 installation
+- requirements: Python3 & Autohotkey installation 
+
+`python -m venv .venv` 
+
+`".venv/Scripts/activate.bat"`
 
 `pip install -r requirements.txt`
 
 
+
 # Usage:
 If PoE is running:
+
+(activate the venv):
+`".venv/Scripts/activate.bat"`
 
 `python3 -m ahkpy macro.py`
 
