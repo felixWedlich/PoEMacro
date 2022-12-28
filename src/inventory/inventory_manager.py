@@ -71,7 +71,7 @@ class InventoryManager:
 
         # gui and hooks for locking stash cells to not be autodumped
         first_n_locked_cells = config.getint('inventory', 'FIRST_N_CELLS_LOCKED')
-        self.inv_locked = [[1 if first_n_locked_cells < row + col * 5 else 0 for row in range(5)] for col in range(12)]
+        self.inv_locked = [[1 if first_n_locked_cells > row + col * 5 else 0 for row in range(5)] for col in range(12)]
 
         self.root = Tk()
 
