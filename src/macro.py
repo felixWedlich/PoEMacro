@@ -2,8 +2,8 @@ import configparser
 import time
 import threading
 import ahkpy
-from flask import FlaskBelt
-from inventory import InventoryManager
+from .flask import FlaskBelt
+from .inventory import InventoryManager
 
 AUTOFLASK_DISABLED_PLACES = ["Hideout",
                              "Rogue Harbour",
