@@ -60,111 +60,118 @@ class Detector:
 
         self.SLASH_OFFSET_CHECKS = [(6, -1), (10, -2), (14, -3), (18, -4), (21, -5)]
 
+    def detect(self, sct, update_cap:bool):
+        im = sct.grab(self.bbox)
+        arr = np.array(Image.frombytes("RGB", im.size, im.bgra, "raw", "BGRX").convert("L"))
+
+        # set all non-white pixels black
+        arr[arr != 254] = 0
+        potential_slash_idxs = np.argwhere(arr[0,])
+        if len(potential_slash_idxs):
+            potential_slash_idxs = potential_slash_idxs[:, 0]
+        valid_idx = []
+        for idx in potential_slash_idxs:
+            base = np.array((0, idx))
+            slash = True
+            for slash_offset_check in self.SLASH_OFFSET_CHECKS:
+                check = base + slash_offset_check
+                if arr[tuple(check)] != 254:
+                    slash = False
+                    break
+            if slash:
+                valid_idx.append(idx)
+        if len(valid_idx) > 1:
+            print("ERROR: found multiple valid_idx")
+
+            # TODO save image
+            return
+        if len(valid_idx) == 0:
+            # print("ERROR: found no valid idx")
+            return
+        valid_idx = valid_idx[0]
+        detected = []
+
+        # only x moves and is decremented every iteration
+        x_offset = -5 + valid_idx
+
+        y_base = 1
+        while True:
+            found = False
+            for n, y_offset, x_offset_after in zip(self.OFFSETS_Y.keys(), self.OFFSETS_Y.values(),
+                                                   self.OFFSETS_AFTER.values()):
+                idx = self.chiffre_white_idxs[n]
+                x = x_offset - (self.chiffres[n].shape[1] + x_offset_after)
+                idx_offsetted = tuple(idx + np.array([[y_offset + y_base], [x]]))
+                try:
+                    arr_at_idx = arr[idx_offsetted]
+                except IndexError:
+                    continue
+                non_zero = np.count_nonzero(arr_at_idx)
+                # print(n,non_zero)
+                if non_zero == self.chiffre_white_count[n]:
+                    x_offset -= (self.chiffres[n].shape[1] + x_offset_after)
+                    if n != 10:
+                        detected.append(n)
+                    found = True
+                    break
+            if not found:
+                break
+        if not len(detected):
+            print("ERROR: did not detect")
+        detected.reverse()
+        val = reduce(lambda x, y: x * 10 + y, detected)
+        # print(val)
+        self.mem.buf[0:4] = val.to_bytes(4,byteorder="big")
+
+        if update_cap:
+            self.update_cap(valid_idx,arr)
+        return val
+
+    def update_cap(self,valid_idx,arr):
+        detected = []
+        # only x moves and is incremented every iteration
+        x_offset = 2 + valid_idx
+
+        y_base = 1
+        while True:
+            found = False
+            for n, y_offset, x_offset_after in zip(self.OFFSETS_Y.keys(), self.OFFSETS_Y.values(),
+                                                   self.OFFSETS_AFTER.values()):
+                idx = self.chiffre_white_idxs[n]
+                idx_offsetted = tuple(idx + np.array([[y_offset + y_base], [x_offset]]))
+                try:
+                    arr_at_idx = arr[idx_offsetted]
+                except IndexError:
+                    continue
+                non_zero = np.count_nonzero(arr_at_idx)
+                # print(n,non_zero)
+                if non_zero == self.chiffre_white_count[n]:
+                    x_offset += (self.chiffres[n].shape[1] + x_offset_after)
+                    if n != 10:
+                        detected.append(n)
+                    found = True
+                    break
+            if not found:
+                break
+        val = reduce(lambda x, y: x * 10 + y, detected)
+        # print(val)
+        self.mem.buf[7:11] = val.to_bytes(4,byteorder="big")
+        print("new cap", val)
+        self.mem.buf[6] = 0
+        return val
+
     def _loop(self):
         print("entered _loop")
         with mss.mss() as sct:
-            monitor = sct.monitors[0]
-
             while True:
                 if self.mem.buf[4]:  # paused
                     time.sleep(1)
                     continue
                 if self.mem.buf[5]:  # stopped
                     break
-
-
-                im = sct.grab(self.bbox)
-                arr = np.array(Image.frombytes("RGB", im.size, im.bgra, "raw", "BGRX").convert("L"))
-                # set all non-white pixels black
-                arr[arr != 254] = 0
-                potential_slash_idxs = np.argwhere(arr[0,])
-                if len(potential_slash_idxs):
-                    potential_slash_idxs = potential_slash_idxs[:, 0]
-                valid_idx = []
-                for idx in potential_slash_idxs:
-                    base = np.array((0, idx))
-                    slash = True
-                    for slash_offset_check in self.SLASH_OFFSET_CHECKS:
-                        check = base + slash_offset_check
-                        if arr[tuple(check)] != 254:
-                            slash = False
-                            break
-                    if slash:
-                        valid_idx.append(idx)
-                if len(valid_idx) > 1:
-                    # print("ERROR: found multiple valid_idx")
-                    # TODO save image
-                    continue
-                if len(valid_idx) == 0:
-                    # print("ERROR: found no valid idx")
-                    continue
-                valid_idx = valid_idx[0]
-                detected = []
-
-                # only x moves and is decremented every iteration
-                x_offset = -5 + valid_idx
-
-                y_base = 1
-                while True:
-                    found = False
-                    for n, y_offset, x_offset_after in zip(self.OFFSETS_Y.keys(), self.OFFSETS_Y.values(),
-                                                           self.OFFSETS_AFTER.values()):
-                        idx = self.chiffre_white_idxs[n]
-                        x = x_offset - (self.chiffres[n].shape[1] + x_offset_after)
-                        idx_offsetted = tuple(idx + np.array([[y_offset + y_base], [x]]))
-                        try:
-                            arr_at_idx = arr[idx_offsetted]
-                        except IndexError:
-                            continue
-                        non_zero = np.count_nonzero(arr_at_idx)
-                        # print(n,non_zero)
-                        if non_zero == self.chiffre_white_count[n]:
-                            x_offset -= (self.chiffres[n].shape[1] + x_offset_after)
-                            if n != 10:
-                                detected.append(n)
-                            found = True
-                            break
-                    if not found:
-                        break
-                if not len(detected):
-                    print("ERROR: did not detect")
-                detected.reverse()
-                val = reduce(lambda x, y: x * 10 + y, detected)
-                # print(val)
-                self.mem.buf[0:4] = val.to_bytes(4,byteorder="big")
-                if not self.mem.buf[6]:
-                    continue
-                # else redetermine cap:
-                detected = []
-                # only x moves and is incremented every iteration
-                x_offset = 2 + valid_idx
-
-                y_base = 1
-                while True:
-                    found = False
-                    for n, y_offset, x_offset_after in zip(self.OFFSETS_Y.keys(), self.OFFSETS_Y.values(),
-                                                           self.OFFSETS_AFTER.values()):
-                        idx = self.chiffre_white_idxs[n]
-                        idx_offsetted = tuple(idx + np.array([[y_offset + y_base], [x_offset]]))
-                        try:
-                            arr_at_idx = arr[idx_offsetted]
-                        except IndexError:
-                            continue
-                        non_zero = np.count_nonzero(arr_at_idx)
-                        # print(n,non_zero)
-                        if non_zero == self.chiffre_white_count[n]:
-                            x_offset += (self.chiffres[n].shape[1] + x_offset_after)
-                            if n != 10:
-                                detected.append(n)
-                            found = True
-                            break
-                    if not found:
-                        break
-                val = reduce(lambda x, y: x * 10 + y, detected)
-                # print(val)
-                self.mem.buf[7:11] = val.to_bytes(4,byteorder="big")
-                print("new cap", val)
-                self.mem.buf[6] = 0
+                val = self.detect(sct, update_cap=self.mem.buf[6])
+                if val:
+                    self.mem.buf[0:4] = val.to_bytes(4,byteorder="big")
 
     def _work(self):
         self._init_attrs()
