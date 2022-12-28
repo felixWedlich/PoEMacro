@@ -1,7 +1,7 @@
 import configparser
 
 import ahkpy
-from macro import Macro
+from src.macro import Macro
 from src.utils import gem_swap
 
 if __name__ == '__main__':
