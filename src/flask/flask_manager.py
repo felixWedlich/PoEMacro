@@ -216,6 +216,7 @@ class AlternatingFlask(Flask):
         self.hotkey_cur, self.hotkey_alternative = hotkeys
         self.timer = ahkpy.set_countdown(self.duration_cur, self._swap_timer)
         self.timer.stop()
+        self.safe_send = safe_send
 
     def _swap_timer(self):
         self.duration_cur, self.duration_alternative = self.duration_alternative, self.duration_cur
