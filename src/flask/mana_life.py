@@ -118,6 +118,7 @@ class Detector:
                 break
         if not len(detected):
             print("ERROR: did not detect")
+            return
         detected.reverse()
         val = reduce(lambda x, y: x * 10 + y, detected)
         # print(val)
