@@ -186,17 +186,18 @@ class Detector:
         return val
 
     def _loop(self):
-        print("entered _loop")
-        with mss.mss() as sct:
-            while True:
-                if self.mem.buf[4]:  # paused
-                    time.sleep(1)
-                    continue
-                if self.mem.buf[5]:  # stopped
-                    break
-                val = self.detect(sct, update_cap=self.mem.buf[6])
-                if val:
-                    self.mem.buf[0:4] = val.to_bytes(4,byteorder="big")
+        while True:
+            if self.mem.buf[4]:  # paused
+                time.sleep(1)
+                continue
+            if self.mem.buf[5]:  # stopped
+                break
+            if self.mem.buf[6]: # update cap
+                self.find_slash_idx()
+                self.read_cap()
+            self.read_current_value()
+
+
 
     def _work(self):
         self._init_attrs()
