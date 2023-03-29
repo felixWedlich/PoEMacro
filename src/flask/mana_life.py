@@ -24,6 +24,9 @@ class Detector:
         self.chiffre_white_idxs = {}
         self.chiffre_white_count = {}
 
+        self.sct = mss.mss()
+        self.idx = None
+
     def _init_attrs(self):
 
         for i in range(11):
