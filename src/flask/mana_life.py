@@ -63,41 +63,57 @@ class Detector:
 
         self.SLASH_OFFSET_CHECKS = [(6, -1), (10, -2), (14, -3), (18, -4), (21, -5)]
 
-    def detect(self, sct, update_cap:bool):
-        im = sct.grab(self.bbox)
+        # loop until a slash was found
+        while not self.find_slash_idx():
+            pass
+        print("finished init")
+
+    def find_slash_idx(self) -> Optional[Tuple[int,int]]:
+        im = self.sct.grab(self.bbox)
         arr = np.array(Image.frombytes("RGB", im.size, im.bgra, "raw", "BGRX").convert("L"))
 
         # set all non-white pixels black
         arr[arr != 254] = 0
-        potential_slash_idxs = np.argwhere(arr[0,])
-        if len(potential_slash_idxs):
-            potential_slash_idxs = potential_slash_idxs[:, 0]
-        valid_idx = []
-        for idx in potential_slash_idxs:
-            base = np.array((0, idx))
-            slash = True
-            for slash_offset_check in self.SLASH_OFFSET_CHECKS:
-                check = base + slash_offset_check
-                if arr[tuple(check)] != 254:
-                    slash = False
-                    break
-            if slash:
-                valid_idx.append(idx)
-        if len(valid_idx) > 1:
-            print("ERROR: found multiple valid_idx")
 
-            # TODO save image
+        # iterate through every row of the image in search of white pixels, to check if the are the top of the slash
+        # skip last 22 rows, as the slash is atleast 21 px rows wide
+        for y in range(arr.shape[0]-21):
+
+            potential_slash_idxs = np.argwhere(arr[y,])
+            # if any white pixels found: change the 2d array to 1d
+            if len(potential_slash_idxs):
+                potential_slash_idxs = potential_slash_idxs[:, 0]
+            # check every potential idx, if satisfies all the pixel-checks of a slash:
+            for x in potential_slash_idxs:
+                base = np.array((y, x))
+                slash = True
+                for slash_offset_check in self.SLASH_OFFSET_CHECKS:
+                    check = base + slash_offset_check
+                    if arr[tuple(check)] != 254:
+                        slash = False
+                        break
+                if slash:
+                    self.idx = y,x
+                    return y,x
+        return None
+
+    def read_current_value(self) -> Optional[int]:
+        im = self.sct.grab(self.bbox)
+        arr = np.array(Image.frombytes("RGB", im.size, im.bgra, "raw", "BGRX").convert("L"))
+
+        # set all non-white pixels black
+        arr[arr != 254] = 0
+
+        # quick check if the slash-start pixel is not white (e.g. in a loadingscreen/inv open)
+        if arr[self.idx] != 254:
             return
-        if len(valid_idx) == 0:
-            # print("ERROR: found no valid idx")
-            return
-        valid_idx = valid_idx[0]
-        detected = []
+        # all chifres that were detected from the slash to the left (so reversed order)
+        detected: List[int] = []
 
         # only x moves and is decremented every iteration
-        x_offset = -5 + valid_idx
+        x_offset = -5 + self.idx[1]
 
-        y_base = 1
+        y_base = 1 + self.idx[0]
         while True:
             found = False
             for n, y_offset, x_offset_after in zip(self.OFFSETS_Y.keys(), self.OFFSETS_Y.values(),
@@ -120,23 +136,26 @@ class Detector:
             if not found:
                 break
         if not len(detected):
-            print("ERROR: did not detect")
             return
         detected.reverse()
         val = reduce(lambda x, y: x * 10 + y, detected)
         # print(val)
         self.mem.buf[0:4] = val.to_bytes(4,byteorder="big")
-
-        if update_cap:
-            self.update_cap(valid_idx,arr)
         return val
 
-    def update_cap(self,valid_idx,arr):
+    def read_cap(self):
+        im = self.sct.grab(self.bbox)
+        arr = np.array(Image.frombytes("RGB", im.size, im.bgra, "raw", "BGRX").convert("L"))
+
+        # set all non-white pixels black
+        arr[arr != 254] = 0
+
+
         detected = []
         # only x moves and is incremented every iteration
-        x_offset = 2 + valid_idx
+        x_offset = 2 + self.idx[1]
 
-        y_base = 1
+        y_base = 1 + self.idx[0]
         while True:
             found = False
             for n, y_offset, x_offset_after in zip(self.OFFSETS_Y.keys(), self.OFFSETS_Y.values(),
@@ -161,6 +180,7 @@ class Detector:
         # print(val)
         self.mem.buf[7:11] = val.to_bytes(4,byteorder="big")
         print("new cap", val)
+        # set the shared memory responsible that indicates "update the cap" to 0 as it was successfully done
         self.mem.buf[6] = 0
         return val
 
@@ -211,8 +231,8 @@ if __name__ == '__main__':
         detec.start()
     elif sys.argv[1] == "M":
         try:
-            shared_mem = SharedMemory("MANA", create=True, size=6)
+            shared_mem = SharedMemory("MANA", create=True, size=11)
         except FileExistsError:
-            shared_mem = SharedMemory("MANA", create=False, size=6)
+            shared_mem = SharedMemory("MANA", create=False, size=11)
         detec = Detector(MANA_BBOX,shared_mem)
         detec.start()
