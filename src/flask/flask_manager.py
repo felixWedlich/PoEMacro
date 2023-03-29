@@ -63,7 +63,7 @@ class FlaskBelt:
         if self.FLASKS_ENABLED and not self.FLASKS_RUNNING:
             print("started macro, due to pressing the macro trigger key")
             for flask in self.flasks:
-                if isinstance(flask, (ManaFlask, LifeFlask)):
+                if isinstance(flask, (ManaFlask, LifeFlask, AlternatingFlask)):
                     flask.soft_start()
                     continue
                 flask.hard_start()
