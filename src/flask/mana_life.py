@@ -1,6 +1,6 @@
 import sys
 from functools import reduce
-from typing import Tuple
+from typing import Tuple, Optional, List
 
 from PIL import Image
 import time
