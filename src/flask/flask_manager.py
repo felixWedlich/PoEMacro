@@ -2,7 +2,7 @@ import configparser
 import time
 
 import ahkpy
-from typing import Tuple
+from typing import Tuple, Callable
 import subprocess
 from multiprocessing.shared_memory import SharedMemory
 
@@ -82,7 +82,7 @@ class FlaskBelt:
         self.FLASKS_ENABLED = not self.FLASKS_ENABLED
         print("manually toggled Flasks to: " + ("enabled" if self.FLASKS_ENABLED else "disabled"))
 
-    def safe_send(self, hotkey: str):
+    def safe_send(self, hotkey: str) -> None:
         if self.PATH_OF_EXILE_WINDOW.is_active:
             ahkpy.sleep(np.random.uniform(0, 1) / 100)
             ahkpy.send(hotkey)
@@ -211,21 +211,62 @@ class ManaFlask(Flask):
 
 
 class AlternatingFlask(Flask):
-    def __init__(self, durations: Tuple[float, float], hotkeys: Tuple[str, str], safe_send):
-        self.duration_cur, self.duration_alternative = durations
-        self.hotkey_cur, self.hotkey_alternative = hotkeys
-        self.timer = ahkpy.set_countdown(self.duration_cur, self._swap_timer)
+    def __init__(self, durations: Tuple[float, float], hotkeys: Tuple[str, str], safe_send: Callable[[str], None]):
+        self.durations = durations
+        self.hotkeys = hotkeys
+        self.index = 0
+
+        self.timer = ahkpy.set_countdown(self.durations[self.index], self.swap_index_and_send)
         self.timer.stop()
         self.safe_send = safe_send
 
-    def _swap_timer(self):
-        self.duration_cur, self.duration_alternative = self.duration_alternative, self.duration_cur
-        self.hotkey_cur, self.hotkey_alternative = self.hotkey_alternative, self.hotkey_cur
-        self.safe_send(self.hotkey_cur)
-        self.timer = ahkpy.set_countdown(self.duration_cur, self._swap_timer)
+        #register for both flasks, hotkeys such that if the flask was manually pressed the timers are adjusted
+        ahkpy.hotkey(f"~{hotkeys[0]}",self.manually_pressed_first_flask)
+        ahkpy.hotkey(f"~{hotkeys[1]}",self.manually_pressed_second_flask)
+        # set the timestamp back in time, to pretend that it was pressed so long ago, that it doesnt matter)
+        self.manual_pres_timestamp = time.time() - (max(self.durations)  +1 )
+
+    def swap_index_and_send(self):
+        # swap index to other flask 0 -> 1, 1 -> 0
+        self.index = (self.index + 1) %2
+
+        #send keypress for other flask
+        self.safe_send(self.hotkeys[self.index])
+        #set timer to duration of other flask
+        self.timer = ahkpy.set_countdown(self.durations[self.index],self.swap_index_and_send)
 
     def hard_start(self):
-        if self.duration_cur > 0:
-            self.safe_send(self.hotkey_cur)
-            self.timer.update(interval=self.duration_cur)  # force reset
+        self.index = (self.index + 1) %2
+        self.safe_send(self.hotkeys[self.index])
+        self.timer.update(interval=self.durations[self.index])  # force reset
+        self.timer.start()
+
+    def manually_pressed_second_flask(self):
+        """
+        called, when the player manually presses the flask.
+        Updates the timestamp, sets the index to the second flask(1)
+        and adapts the timer.
+        :return:
+        """
+        self.index = 1
+        self.timer.update(interval=self.durations[1])
+        self.manual_pres_timestamp = time.time()
+
+    def manually_pressed_first_flask(self):
+        self.index = 0
+        self.timer.update(interval=self.durations[0])
+        self.manual_pres_timestamp = time.time()
+
+    def soft_start(self):
+        """
+        Checks the timestamp to determine if a remaining duration of a flask exist
+        and thus it need to be actually soft-started else hardstart it
+        :return:
+        """
+        seconds_since_last_manual_press = time.time() - self.manual_pres_timestamp
+        manual_pres_remaining_duration = self.durations[self.index] - seconds_since_last_manual_press
+        if  manual_pres_remaining_duration > 0:
+            self.timer.update(interval=manual_pres_remaining_duration)
             self.timer.start()
+        else:
+            self.hard_start()
