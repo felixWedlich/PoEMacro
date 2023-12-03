@@ -96,4 +96,5 @@ if __name__ == '__main__':
         macro.inv.fast_click_toggle()
 
 
+    print("macro is started")
     macro.start_looping()
