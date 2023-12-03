@@ -31,6 +31,11 @@ if __name__ == '__main__':
         gem_swap()
 
 
+    @ahkpy.hotkey(f"~{hotkeys['SECOND_MACRO_TRIGGER_KEY']}")
+    def wrap_trigger_auto_flask_1():
+        wrap_trigger_auto_flask()
+
+
     @ahkpy.hotkey(f"~{hotkeys['MACRO_TRIGGER_KEY']}")
     def wrap_trigger_auto_flask_2():
         wrap_trigger_auto_flask()
