@@ -10,8 +10,8 @@ from multiprocessing.shared_memory import SharedMemory
 import mss
 
 MANA_BBOX = (2255, 1012, 2547, 1139)
-LIFE_BBOX = (20, 1083, 295, 1105)
-# LIFE_BBOX = (50, 1119, 295, 1141) #offset due to EB
+# LIFE_BBOX = (20, 1083, 295, 1105)
+LIFE_BBOX = (50, 1110, 295, 1141) #offset due to EB
 ES_BBOX = (50, 1119, 265, 1146)
 
 

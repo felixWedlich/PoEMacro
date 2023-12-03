@@ -11,7 +11,7 @@ class TestFindNewBBOX(unittest.TestCase):
         pass
     def test_life(self):
         shared_mem = SharedMemory("LIFE", create=True, size=11)
-        OLD_BBOX = (50, 1090, 265, 1112)
+        OLD_BBOX = (50, 1119, 295, 1141)
         detector = Detector(OLD_BBOX,shared_mem)
         detector._init_attrs()
         #first test  identical bbox sizes:
